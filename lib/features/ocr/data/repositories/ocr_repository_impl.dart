@@ -18,8 +18,7 @@ class OcrRepositoryImpl implements OcrRepository {
       final imageFile = File(imagePath);
       final recognizedText = await ocrMlkitDatasource.recognizeText(imageFile);
       final entity = RecognizedTextEntity(
-        text: recognizedText,
-        confidence: 1.0, // ML Kit doesn't provide confidence easily
+        recognizedText: recognizedText,
         imagePath: imagePath,
       );
       return Right(entity);

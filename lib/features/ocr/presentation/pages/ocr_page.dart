@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:ocr_task/core/widgets/custom_appbar.dart';
 import 'package:ocr_task/core/widgets/custom_date_picker.dart';
 import 'package:provider/provider.dart';
@@ -28,6 +29,7 @@ class _OcrPageState extends State<OcrPage> {
   final _notesController = TextEditingController();
 
   File? _selectedFile;
+  Size? _imageSize;
 
   @override
   void dispose() {
@@ -42,8 +44,16 @@ class _OcrPageState extends State<OcrPage> {
   Future<void> _onFileSelected(File? file) async {
     if (file == null) return;
 
+    // Performance: Use async method and get image size for the painter.
+    final imageBytes = await file.readAsBytes();
+    final decodedImage = await decodeImageFromList(imageBytes);
+
     setState(() {
       _selectedFile = file;
+      _imageSize = Size(
+        decodedImage.width.toDouble(),
+        decodedImage.height.toDouble(),
+      );
     });
 
     final ocrProvider = context.read<OcrProvider>();
@@ -56,8 +66,8 @@ class _OcrPageState extends State<OcrPage> {
         context: context,
         message: ocrProvider.errorMessage!,
       );
-    } else if (ocrProvider.recognizedText != null) {
-      _autoFillForm(ocrProvider.recognizedText!);
+    } else if (ocrProvider.recognizedTextEntity != null) {
+      _autoFillForm(ocrProvider.recognizedTextEntity!.recognizedText.text);
       CustomSnackbar.showSuccess(
         context: context,
         message: "Receipt scanned successfully",
@@ -106,6 +116,7 @@ class _OcrPageState extends State<OcrPage> {
   void _clearForm() {
     setState(() {
       _selectedFile = null;
+      _imageSize = null;
       _titleController.clear();
       _amountController.clear();
       _dateController.clear();
@@ -206,6 +217,17 @@ class _OcrPageState extends State<OcrPage> {
                                 ),
                               ],
                             ),
+                          ),
+                        ] else if (ocrProvider.recognizedTextEntity != null &&
+                            _selectedFile != null &&
+                            _imageSize != null) ...[
+                          const SizedBox(height: 16),
+                          CustomPaint(
+                            painter: TextRecognizerPainter(
+                              ocrProvider.recognizedTextEntity!.recognizedText,
+                              _imageSize!,
+                            ),
+                            child: Image.file(_selectedFile!),
                           ),
                         ],
                       ],
@@ -340,5 +362,43 @@ class _OcrPageState extends State<OcrPage> {
         ),
       ),
     );
+  }
+}
+
+class TextRecognizerPainter extends CustomPainter {
+  TextRecognizerPainter(this.recognizedText, this.imageSize);
+
+  final RecognizedText recognizedText;
+  final Size imageSize;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double scaleX = size.width / imageSize.width;
+    final double scaleY = size.height / imageSize.height;
+
+    final Paint paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0
+      ..color = Colors.red;
+
+    for (final textBlock in recognizedText.blocks) {
+      for (final textLine in textBlock.lines) {
+        canvas.drawRect(
+          Rect.fromLTRB(
+            textLine.boundingBox.left * scaleX,
+            textLine.boundingBox.top * scaleY,
+            textLine.boundingBox.right * scaleX,
+            textLine.boundingBox.bottom * scaleY,
+          ),
+          paint,
+        );
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(TextRecognizerPainter oldDelegate) {
+    return oldDelegate.recognizedText != recognizedText ||
+        oldDelegate.imageSize != imageSize;
   }
 }

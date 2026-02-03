@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import '../../domain/entities/recognized_text_entity.dart';
 import '../../domain/usecases/process_image_usecase.dart';
 
 class OcrProvider extends ChangeNotifier {
@@ -8,17 +9,17 @@ class OcrProvider extends ChangeNotifier {
   OcrProvider({required this.processImageUseCase});
 
   bool _isLoading = false;
-  String? _recognizedText;
+  RecognizedTextEntity? _recognizedTextEntity;
   String? _errorMessage;
 
   bool get isLoading => _isLoading;
-  String? get recognizedText => _recognizedText;
+  RecognizedTextEntity? get recognizedTextEntity => _recognizedTextEntity;
   String? get errorMessage => _errorMessage;
 
   Future<void> processImage(File imageFile) async {
     _isLoading = true;
     _errorMessage = null;
-    _recognizedText = null;
+    _recognizedTextEntity = null;
     notifyListeners();
 
     final result = await processImageUseCase(
@@ -29,7 +30,7 @@ class OcrProvider extends ChangeNotifier {
         _errorMessage = failure.message;
       },
       (recognizedTextEntity) {
-        _recognizedText = recognizedTextEntity.text;
+        _recognizedTextEntity = recognizedTextEntity;
       },
     );
 
@@ -38,7 +39,7 @@ class OcrProvider extends ChangeNotifier {
   }
 
   void clearResults() {
-    _recognizedText = null;
+    _recognizedTextEntity = null;
     _errorMessage = null;
     notifyListeners();
   }

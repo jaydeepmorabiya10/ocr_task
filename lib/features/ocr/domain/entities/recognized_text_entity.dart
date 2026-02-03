@@ -1,16 +1,15 @@
 import 'package:equatable/equatable.dart';
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 
 class RecognizedTextEntity extends Equatable {
-  final String text;
-  final double confidence;
+  final RecognizedText recognizedText;
   final String imagePath;
 
   const RecognizedTextEntity({
-    required this.text,
-    required this.confidence,
+    required this.recognizedText,
     required this.imagePath,
   });
 
   @override
-  List<Object> get props => [text, confidence, imagePath];
+  List<Object> get props => [recognizedText, imagePath];
 }
